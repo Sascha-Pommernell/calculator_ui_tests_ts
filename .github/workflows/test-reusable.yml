@@ -141,8 +141,12 @@ jobs:
 
       - run: npm run typecheck
 
+      # No `--with-deps` here: the GitHub ubuntu-24.04 image already ships all Chromium
+      # system libraries. `--with-deps` would only pull optional CJK fonts via apt, and a
+      # slow Ubuntu mirror once stalled that download for 15+ minutes.
       - name: Install Playwright browsers
-        run: npm run install:browsers
+        timeout-minutes: 10
+        run: npx playwright install chromium
 
       - name: Run Playwright UI tests
         shell: bash
