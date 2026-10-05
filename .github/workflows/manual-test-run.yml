@@ -1,0 +1,172 @@
+name: Manuelle Testausführung
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Test-Modus'
+        required: true
+        type: choice
+        options:
+          - 'Alle Tests'
+          - 'Spezifische Testsuite'
+          - 'Spezifischer Testfall'
+          - 'Nach Priorität'
+        default: 'Alle Tests'
+
+      test_file:
+        description: 'Testsuite (nur bei "Spezifische Testsuite")'
+        required: false
+        type: choice
+        options:
+          - 'Keine Auswahl'
+          - '01_HappyPath.spec.ts'
+          - '02_DecimalPrecision.spec.ts'
+          - '03_ApiErrors.spec.ts'
+          - '04_ClientValidation.spec.ts'
+          - '05_UiBehavior.spec.ts'
+        default: 'Keine Auswahl'
+
+      test_case:
+        description: 'Testfall (nur bei "Spezifischer Testfall")'
+        required: false
+        type: choice
+        options:
+          - 'Keine Auswahl'
+          - "TC-ADD-01 Addition 1 + 2 = 3"
+          - "TC-ADD-02 Addition 1 + 2 + 3 + 4 = 10 (variadisch)"
+          - "TC-ADD-03 Addition -5 + 2.5 = -2.5 (negative und dezimale Zahlen)"
+          - "TC-SUB-01 Subtraktion 10 - 4 = 6"
+          - "TC-SUB-02 Subtraktion 10 - 4 - 3 = 3 (links-assoziativ)"
+          - "TC-SUB-03 Subtraktion -1 - -1 = 0"
+          - "TC-MUL-01 Multiplikation 3 * 4 = 12"
+          - "TC-MUL-02 Multiplikation 2 * 3 * 4 = 24 (variadisch)"
+          - "TC-MUL-03 Multiplikation 5 * 0 = 0"
+          - "TC-MUL-04 Multiplikation -2 * 2.5 = -5"
+          - "TC-DIV-01 Division 10 / 4 = 2.5"
+          - "TC-DIV-02 Division 100 / 5 / 2 = 10 (verkettet, links-assoziativ)"
+          - "TC-DIV-03 Division -9 / 3 = -3"
+          - "TC-DIV-04 Division 0 / 5 = 0 (Dividend null ist erlaubt)"
+          - "TC-DEC-01 Präzision 0.1 + 0.2 = exakt 0.3"
+          - "TC-DEC-02 Präzision 1 - 0.9 = exakt 0.1"
+          - "TC-DEC-03 Präzision 1.1 * 1.1 = exakt 1.21"
+          - "TC-DEC-04 Präzision 1 / 3 = 0.3333333333333333333333333333 (28 Nachkommastellen)"
+          - "TC-DEC-09 Rundung 2 / 3 = 0.6666666666666666666666666667 (half away from zero)"
+          - "TC-UI-DEC-01 Komma als Dezimaltrennzeichen 1,5 + 2 = 3.5"
+          - "TC-UI-DEC-02 Komma als Dezimaltrennzeichen 0,3 - 0,1 = exakt 0.2"
+          - "TC-UI-DEC-03 Präzision über mehrere Schritte 0.1 + 0.2 + 0.3 = exakt 0.6"
+          - "TC-DEC-05 Überlauf Addition 7e28 + 1e28"
+          - "TC-DEC-06 Negativer Überlauf Subtraktion -7e28 - 1e28"
+          - "TC-DEC-07 Überlauf Multiplikation 1e15 * 1e15"
+          - "TC-DEC-08 Überlauf Division 7e28 / 0.5"
+          - "TC-DEC-11 Überlauf in späterem Rechenschritt 1e14 * 1e14 * 10"
+          - "TC-DIV0-01 Division durch null 10 / 0"
+          - "TC-DIV0-02 Division durch negative null 10 / -0"
+          - "TC-DIV0-03 Division durch null an späterer Position 10 / 2 / 0"
+          - "TC-VAL-10 Operand 1e308 außerhalb des Decimal-Wertebereichs"
+          - "TC-VAL-11 Operand decimal.MaxValue + 1 (2^96) außerhalb des Wertebereichs"
+          - "TC-UI-VAL-01 Zahl 1 leer"
+          - "TC-UI-VAL-02 Zahl 2 leer"
+          - "TC-UI-VAL-03 Zahl 1 ungültig (Text)"
+          - "TC-UI-VAL-04 Beide Felder ungültig (Text und Leerzeichen)"
+          - "TC-UI-VAL-05 Zahl 1 zu groß (1e999 ist nicht endlich)"
+          - "TC-UI-VAL-06 Hexadezimale Eingabe wird abgelehnt (0x10)"
+          - "TC-UI-VAL-07 Zahl 2 'Infinity' wird abgelehnt"
+          - "TC-UI-VAL-08 Mehrere Dezimaltrennzeichen werden abgelehnt (1.2.3)"
+          - "TC-UI-VAL-10 Hinzugefügtes drittes Feld wird validiert (1, 2, x)"
+          - "TC-UI-VAL-11 Mehrere hinzugefügte Felder leer (1, 2, leer, leer)"
+          - "TC-UI-PAGE-01 Initialer Seitenzustand"
+          - "TC-UI-OPS-01 Eingabefelder hinzufügen und entfernen (Minimum 2)"
+          - "TC-UI-STAT-01 API-Status zeigt 'API erreichbar' (TC-CON-06 Health)"
+          - "TC-UI-STAT-02 API-Status zeigt 'API nicht erreichbar' bei fehlgeschlagenem Health-Check"
+          - "TC-UI-NET-01 Netzwerkfehler bei Berechnung zeigt 'Die API ist nicht erreichbar'"
+          - "TC-UI-NET-02 Gateway-Fehler 503 ohne API-Body gilt als 'nicht erreichbar'"
+          - "TC-UI-PEND-01 Formular ist während laufender Berechnung deaktiviert"
+          - "TC-UI-HIST-01 Verlauf: neueste Berechnung zuerst, Leeren entfernt den Verlauf"
+          - "TC-UI-HIST-02 Verlauf ist auf 10 Einträge begrenzt"
+          - "TC-UI-VAL-09 Feldfehler verschwindet bei Bearbeitung des Feldes"
+          - "TC-UI-NAV-01 Unbekannte Route zeigt 'Seite nicht gefunden' mit Rücklink"
+        default: 'Keine Auswahl'
+
+      priority:
+        description: 'Priorität (nur bei "Nach Priorität")'
+        required: false
+        type: choice
+        options:
+          - 'Keine Auswahl'
+          - '@prio-hoch'
+          - '@prio-mittel'
+        default: 'Keine Auswahl'
+
+      enable_trace:
+        description: 'Trace-Einstellung überschreiben'
+        required: true
+        type: boolean
+        default: true
+
+      trace_mode:
+        description: 'Trace-Modus'
+        required: true
+        type: choice
+        options:
+          - 'on'
+          - 'on-first-retry'
+          - 'retain-on-failure'
+        default: 'on'
+
+      api_ref:
+        description: 'Git-Ref des API-Repositories (calculator_api_ts)'
+        required: false
+        type: string
+        default: 'main'
+
+      ui_ref:
+        description: 'Git-Ref des UI-Repositories (calculator_ui_ts)'
+        required: false
+        type: string
+        default: 'main'
+
+      publish_report:
+        description: 'Report auf GitHub Pages veröffentlichen'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+# Shared with ui-tests.yml so that Pages deployments never run concurrently
+concurrency:
+  group: ui-tests-pages
+  cancel-in-progress: false
+
+jobs:
+  manual-test:
+    name: Führe Tests aus
+    uses: ./.github/workflows/test-reusable.yml
+    with:
+      test_file: ${{ inputs.test_mode == 'Spezifische Testsuite' && inputs.test_file != 'Keine Auswahl' && inputs.test_file || '' }}
+      test_case: ${{ inputs.test_mode == 'Spezifischer Testfall' && inputs.test_case != 'Keine Auswahl' && inputs.test_case || '' }}
+      priority: ${{ inputs.test_mode == 'Nach Priorität' && inputs.priority != 'Keine Auswahl' && inputs.priority || '' }}
+      enable_trace: ${{ inputs.enable_trace }}
+      trace_mode: ${{ inputs.trace_mode }}
+      api_ref: ${{ inputs.api_ref || 'main' }}
+      ui_ref: ${{ inputs.ui_ref || 'main' }}
+
+  deploy:
+    name: Veröffentliche Report
+    if: ${{ always() && inputs.publish_report && github.ref == 'refs/heads/main' }}
+    needs: [manual-test]
+    uses: ./.github/workflows/deploy-to-pages-reusable.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+    with:
+      artifact_name: report-${{ github.run_id }}-${{ github.run_attempt }}
+      run_id: ${{ github.run_id }}
+      run_attempt: ${{ github.run_attempt }}

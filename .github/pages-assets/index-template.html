@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Test Reports - Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Theme wechseln">🌙</button>
+    <div class="container">
+        <h1>🧪 UI Test Reports - Calculator</h1>
+        <p>Automatisierte Playwright-E2E-Tests für <code>calculator_ui_ts</code> gegen <code>calculator_api_ts</code></p>
+
+        <div class="environment">
+            <h2>🔧 Aktueller Testlauf</h2>
+            <p>API und UI werden im Workflow aus den Repositories gebaut und lokal gestartet (API <code>:3000</code>, UI <code>:5173</code>).</p>
+            <!-- REPORTS_PLACEHOLDER -->
+            <div class="history">
+                <h3>📜 Historische Reports</h3>
+                <!-- HISTORY_PLACEHOLDER -->
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🤖 Automatisch generiert am <!-- DATE_PLACEHOLDER --> um <!-- TIME_PLACEHOLDER --> UTC |
+            GitHub Run: <a href="https://github.com/<!-- REPO_PLACEHOLDER -->/actions/runs/<!-- RUN_ID_PLACEHOLDER -->"><!-- RUN_ID_PLACEHOLDER --></a></p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
