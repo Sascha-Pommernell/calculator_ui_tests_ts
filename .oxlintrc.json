@@ -9,5 +9,5 @@
     "typescript/no-extraneous-class": "off",
     "unicorn/consistent-function-scoping": "off"
   },
-  "ignorePatterns": ["node_modules/**", "playwright-report/**", "test-results/**", "external/**"]
+  "ignorePatterns": ["node_modules/**", "playwright-report/**", "test-results/**", "external/**", ".github/pages-assets/**"]
 }
