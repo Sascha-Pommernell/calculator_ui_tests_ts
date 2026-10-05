@@ -1,0 +1,46 @@
+{
+  "name": "calculator_ui_tests_ts",
+  "version": "1.0.0",
+  "description": "End-to-end UI tests (Playwright) for calculator_ui_ts against calculator_api_ts",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:parallel": "playwright test --workers=4",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:with-report": "playwright test && playwright show-report",
+    "test:prio-hoch": "playwright test --grep @prio-hoch",
+    "test:prio-mittel": "playwright test --grep @prio-mittel",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "ui-tests",
+    "calculator"
+  ],
+  "author": "Sascha Pommernell",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sascha-Pommernell/calculator_ui_tests_ts.git"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "playwright": "^1.63.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "oxlint": "^1.85.0",
+    "typescript": "^7.0.2"
+  }
+}

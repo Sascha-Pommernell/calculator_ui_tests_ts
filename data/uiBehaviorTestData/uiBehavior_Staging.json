@@ -1,0 +1,162 @@
+[
+  {
+    "testCase": "TC-UI-PAGE-01 Initialer Seitenzustand",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "initial-page-state",
+      "expected": {
+        "pageTitle": "Calculator",
+        "heading": "Calculator",
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation.",
+        "defaultOperation": "add",
+        "initialOperandCount": 2,
+        "idleButtonText": "Berechnen"
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-OPS-01 Eingabefelder hinzufügen und entfernen (Minimum 2)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "scenario": "operand-fields-add-remove",
+      "operandFields": {
+        "add": 2,
+        "values": ["10", "4", "3", "1"],
+        "removePosition": 2,
+        "valuesAfterRemove": ["10", "3", "1"]
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-STAT-01 API-Status zeigt 'API erreichbar' (TC-CON-06 Health)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "api-status-online",
+      "apiStatus": { "text": "API erreichbar", "dataStatus": "online" }
+    }
+  },
+  {
+    "testCase": "TC-UI-STAT-02 API-Status zeigt 'API nicht erreichbar' bei fehlgeschlagenem Health-Check",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "api-status-offline",
+      "network": { "urlPattern": "**/health" },
+      "apiStatus": { "text": "API nicht erreichbar", "dataStatus": "offline" }
+    }
+  },
+  {
+    "testCase": "TC-UI-NET-01 Netzwerkfehler bei Berechnung zeigt 'Die API ist nicht erreichbar'",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "network-error",
+      "network": { "urlPattern": "**/api/calculate/**" },
+      "calculations": [{ "operation": "add", "operands": ["1", "2"] }],
+      "expected": { "errorMessage": "Die API ist nicht erreichbar" }
+    }
+  },
+  {
+    "testCase": "TC-UI-NET-02 Gateway-Fehler 503 ohne API-Body gilt als 'nicht erreichbar'",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "gateway-error",
+      "network": { "urlPattern": "**/api/calculate/**", "status": 503 },
+      "calculations": [{ "operation": "multiply", "operands": ["2", "3"] }],
+      "expected": { "errorMessage": "Die API ist nicht erreichbar" }
+    }
+  },
+  {
+    "testCase": "TC-UI-PEND-01 Formular ist während laufender Berechnung deaktiviert",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "pending-state",
+      "network": { "urlPattern": "**/api/calculate/**", "delayMs": 3000 },
+      "calculations": [{ "operation": "add", "operands": ["1", "2"] }],
+      "expected": { "pendingButtonText": "Berechne…", "idleButtonText": "Berechnen", "results": ["3"] }
+    }
+  },
+  {
+    "testCase": "TC-UI-HIST-01 Verlauf: neueste Berechnung zuerst, Leeren entfernt den Verlauf",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "history-order-and-clear",
+      "calculations": [
+        { "operation": "add", "operands": ["1", "2"] },
+        { "operation": "add", "operands": ["10", "20", "30"] },
+        { "operation": "divide", "operands": ["1", "3"] }
+      ],
+      "expected": {
+        "results": ["3", "60", "0.3333333333333333333333333333"],
+        "historyEntries": ["1 ÷ 3 =0.3333333333333333333333333333", "10 + 20 + 30 =60", "1 + 2 =3"]
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-HIST-02 Verlauf ist auf 10 Einträge begrenzt",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "history-limit",
+      "calculations": [
+        { "operation": "add", "operands": ["1", "1"] },
+        { "operation": "add", "operands": ["2", "1"] },
+        { "operation": "add", "operands": ["3", "1"] },
+        { "operation": "add", "operands": ["4", "1"] },
+        { "operation": "add", "operands": ["5", "1"] },
+        { "operation": "add", "operands": ["6", "1"] },
+        { "operation": "add", "operands": ["7", "1"] },
+        { "operation": "add", "operands": ["8", "1"] },
+        { "operation": "add", "operands": ["9", "1"] },
+        { "operation": "add", "operands": ["10", "1"] },
+        { "operation": "add", "operands": ["11", "1"] }
+      ],
+      "expected": {
+        "results": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+        "historyLimit": 10,
+        "historyEntries": [
+          "11 + 1 =12",
+          "10 + 1 =11",
+          "9 + 1 =10",
+          "8 + 1 =9",
+          "7 + 1 =8",
+          "6 + 1 =7",
+          "5 + 1 =6",
+          "4 + 1 =5",
+          "3 + 1 =4",
+          "2 + 1 =3"
+        ]
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-09 Feldfehler verschwindet bei Bearbeitung des Feldes",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "scenario": "field-error-clears-on-edit",
+      "calculations": [{ "operation": "add", "operands": ["abc", "1"] }],
+      "expected": { "fieldError": "Ungültige Zahl", "operandAfterEdit": "1" }
+    }
+  },
+  {
+    "testCase": "TC-UI-NAV-01 Unbekannte Route zeigt 'Seite nicht gefunden' mit Rücklink",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "scenario": "not-found-route",
+      "expected": {
+        "unknownPath": "/gibt-es-nicht",
+        "notFoundHeading": "Seite nicht gefunden",
+        "backLinkText": "Zurück zum Rechner",
+        "heading": "Calculator"
+      }
+    }
+  }
+]

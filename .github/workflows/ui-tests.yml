@@ -1,0 +1,130 @@
+name: UI Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      api_ref:
+        description: Git ref of the API repository (calculator_api_ts)
+        default: main
+        type: string
+      ui_ref:
+        description: Git ref of the UI repository (calculator_ui_ts)
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  API_BASE_URL: http://localhost:3000
+  UI_BASE_URL: http://localhost:5173
+  TEST_ENVIRONMENT: DEV
+
+jobs:
+  ui-tests:
+    name: Playwright UI tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # External repositories are checked out below `external/` so they never collide
+      # with this repository's own folders (e.g. `api/` holds our API client code).
+      - name: Checkout API repository
+        uses: actions/checkout@v6
+        with:
+          repository: Sascha-Pommernell/calculator_api_ts
+          ref: ${{ inputs.api_ref || 'main' }}
+          path: external/api
+
+      - name: Checkout UI repository
+        uses: actions/checkout@v6
+        with:
+          repository: Sascha-Pommernell/calculator_ui_ts
+          ref: ${{ inputs.ui_ref || 'main' }}
+          path: external/ui
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            external/api/package-lock.json
+            external/ui/package-lock.json
+
+      - name: Build API
+        working-directory: external/api
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start API and wait for /health
+        working-directory: external/api
+        run: |
+          PORT=3000 nohup npm start > ../../api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_BASE_URL/health" > /dev/null; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy"
+          cat ../../api.log
+          exit 1
+
+      - name: Build UI
+        working-directory: external/ui
+        run: |
+          npm ci
+          npm run build
+
+      # `vite preview` serves the production build and reuses server.proxy for /api and /health
+      - name: Start UI and wait for /
+        working-directory: external/ui
+        run: |
+          API_PROXY_TARGET=$API_BASE_URL nohup npx vite preview --host 127.0.0.1 --port 5173 --strictPort > ../../ui.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$UI_BASE_URL/" > /dev/null && curl -fsS "$UI_BASE_URL/health" > /dev/null; then
+              echo "UI is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "UI did not become reachable"
+          cat ../../ui.log
+          exit 1
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - name: Install Playwright browsers
+        run: npm run install:browsers
+
+      - name: Run Playwright UI tests
+        run: npm test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: server-logs
+          path: |
+            api.log
+            ui.log

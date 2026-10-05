@@ -1,0 +1,96 @@
+[
+  {
+    "testCase": "TC-DEC-05 Überlauf Addition 7e28 + 1e28",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "add", "operands": ["7e28", "1e28"] },
+      "expected": { "errorMessage": "Arithmetic overflow: result exceeds the decimal range" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-06 Negativer Überlauf Subtraktion -7e28 - 1e28",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "subtract", "operands": ["-7e28", "1e28"] },
+      "expected": { "errorMessage": "Arithmetic overflow: result exceeds the decimal range" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-07 Überlauf Multiplikation 1e15 * 1e15",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "multiply", "operands": ["1e15", "1e15"] },
+      "expected": { "errorMessage": "Arithmetic overflow: result exceeds the decimal range" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-08 Überlauf Division 7e28 / 0.5",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "divide", "operands": ["7e28", "0.5"] },
+      "expected": { "errorMessage": "Arithmetic overflow: result exceeds the decimal range" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-11 Überlauf in späterem Rechenschritt 1e14 * 1e14 * 10",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "multiply", "operands": ["1e14", "1e14", "10"] },
+      "expected": { "errorMessage": "Arithmetic overflow: result exceeds the decimal range" }
+    }
+  },
+  {
+    "testCase": "TC-DIV0-01 Division durch null 10 / 0",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["10", "0"] },
+      "expected": { "errorMessage": "Division by zero is not allowed" }
+    }
+  },
+  {
+    "testCase": "TC-DIV0-02 Division durch negative null 10 / -0",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["10", "-0"] },
+      "expected": { "errorMessage": "Division by zero is not allowed" }
+    }
+  },
+  {
+    "testCase": "TC-DIV0-03 Division durch null an späterer Position 10 / 2 / 0",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["10", "2", "0"] },
+      "expected": { "errorMessage": "Division by zero is not allowed" }
+    }
+  },
+  {
+    "testCase": "TC-VAL-10 Operand 1e308 außerhalb des Decimal-Wertebereichs",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1e308", "1"] },
+      "expected": {
+        "errorMessage": "Body must contain an array numbers with at least two finite numbers within the decimal range"
+      }
+    }
+  },
+  {
+    "testCase": "TC-VAL-11 Operand decimal.MaxValue + 1 (2^96) außerhalb des Wertebereichs",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["79228162514264337593543950336", "1"] },
+      "expected": {
+        "errorMessage": "Body must contain an array numbers with at least two finite numbers within the decimal range"
+      }
+    }
+  }
+]

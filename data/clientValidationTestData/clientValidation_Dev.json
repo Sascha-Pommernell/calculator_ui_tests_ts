@@ -1,0 +1,127 @@
+[
+  {
+    "testCase": "TC-UI-VAL-01 Zahl 1 leer",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["", "1"] },
+      "expected": {
+        "fields": [{ "error": "Bitte eine Zahl eingeben" }, { "error": null }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-02 Zahl 2 leer",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "subtract", "operands": ["1", ""] },
+      "expected": {
+        "fields": [{ "error": null }, { "error": "Bitte eine Zahl eingeben" }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-03 Zahl 1 ungültig (Text)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["abc", "1"] },
+      "expected": {
+        "fields": [{ "error": "Ungültige Zahl" }, { "error": null }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-04 Beide Felder ungültig (Text und Leerzeichen)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["abc", " "] },
+      "expected": {
+        "fields": [{ "error": "Ungültige Zahl" }, { "error": "Bitte eine Zahl eingeben" }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-05 Zahl 1 zu groß (1e999 ist nicht endlich)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1e999", "1"] },
+      "expected": {
+        "fields": [{ "error": "Zahl ist zu groß" }, { "error": null }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-06 Hexadezimale Eingabe wird abgelehnt (0x10)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["0x10", "1"] },
+      "expected": {
+        "fields": [{ "error": "Ungültige Zahl" }, { "error": null }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-07 Zahl 2 'Infinity' wird abgelehnt",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["1", "Infinity"] },
+      "expected": {
+        "fields": [{ "error": null }, { "error": "Ungültige Zahl" }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-08 Mehrere Dezimaltrennzeichen werden abgelehnt (1.2.3)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1.2.3", "1"] },
+      "expected": {
+        "fields": [{ "error": "Ungültige Zahl" }, { "error": null }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-10 Hinzugefügtes drittes Feld wird validiert (1, 2, x)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1", "2", "x"] },
+      "expected": {
+        "fields": [{ "error": null }, { "error": null }, { "error": "Ungültige Zahl" }],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-VAL-11 Mehrere hinzugefügte Felder leer (1, 2, leer, leer)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["1", "2", "", ""] },
+      "expected": {
+        "fields": [
+          { "error": null },
+          { "error": null },
+          { "error": "Bitte eine Zahl eingeben" },
+          { "error": "Bitte eine Zahl eingeben" }
+        ],
+        "idleHint": "Gib zwei Zahlen ein und wähle eine Operation."
+      }
+    }
+  }
+]
