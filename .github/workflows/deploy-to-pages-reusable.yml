@@ -1,0 +1,281 @@
+name: Deploy to GitHub Pages (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: 'Name of the report artifact to publish (e.g. "report-123-1")'
+        required: true
+        type: string
+      run_id:
+        description: 'GitHub run ID'
+        required: true
+        type: string
+      run_attempt:
+        description: 'GitHub run attempt'
+        required: true
+        type: string
+      history_size:
+        description: 'Number of historical reports to keep on the overview page'
+        required: false
+        type: number
+        default: 10
+
+jobs:
+  deploy:
+    name: Publish reports
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      actions: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    env:
+      RUN_NAME: ${{ inputs.run_id }}-${{ inputs.run_attempt }}
+      HISTORY_SIZE: ${{ inputs.history_size }}
+
+    steps:
+      - name: 📋 Display deployment information
+        shell: bash
+        run: |
+          {
+            echo "### 🚀 Deployment Information"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| **Run ID** | \`${{ inputs.run_id }}\` |"
+            echo "| **Run Attempt** | \`${{ inputs.run_attempt }}\` |"
+            echo "| **Artifact** | \`${{ inputs.artifact_name }}\` |"
+            echo ""
+            echo "---"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout repository for assets
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/pages-assets
+          sparse-checkout-cone-mode: false
+
+      - name: Download current report artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: site-current
+        continue-on-error: true
+
+      - name: Download historical report artifacts from previous runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CURRENT_ARTIFACT: ${{ inputs.artifact_name }}
+        run: |
+          set +e  # continue even if individual downloads fail (expired artifacts etc.)
+          echo "🗂️  Downloading historical report artifacts..."
+          mkdir -p historical-artifacts
+
+          # Report artifacts are named report-<run_id>-<run_attempt>; other artifacts
+          # (test-results, server-logs, github-pages) are ignored.
+          ARTIFACTS=$(curl -fsS -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/actions/artifacts?per_page=100" \
+            | jq -r --arg current "${CURRENT_ARTIFACT}" \
+                '.artifacts[]
+                 | select(.expired == false)
+                 | select(.name | test("^report-[0-9]+-[0-9]+$"))
+                 | select(.name != $current)
+                 | "\(.name),\(.id)"' \
+            | sort -t- -k2,2nr -k3,3nr \
+            | head -n "${HISTORY_SIZE}")
+
+          if [ -z "$ARTIFACTS" ]; then
+            echo "No historical report artifacts found"
+          else
+            echo "Historical report artifacts:"
+            echo "$ARTIFACTS" | sed 's/^/  /'
+          fi
+
+          while IFS=',' read -r artifact_name artifact_id; do
+            [ -z "$artifact_name" ] && continue
+            run_name="${artifact_name#report-}"
+            target_dir="historical-artifacts/${run_name}"
+            mkdir -p "$target_dir"
+
+            curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO}/actions/artifacts/${artifact_id}/zip" \
+              -o "${target_dir}/artifact.zip"
+            CURL_EXIT_CODE=$?
+
+            if [ $CURL_EXIT_CODE -eq 0 ] && [ -s "${target_dir}/artifact.zip" ]; then
+              if unzip -q -o "${target_dir}/artifact.zip" -d "$target_dir" 2>/dev/null; then
+                rm -f "${target_dir}/artifact.zip"
+                echo "✓ Downloaded and extracted: $artifact_name"
+              else
+                echo "⚠️  Could not extract ${artifact_name}"
+                rm -rf "$target_dir"
+              fi
+            else
+              echo "⚠️  Failed to download ${artifact_name} (curl exit code: $CURL_EXIT_CODE)"
+              rm -rf "$target_dir"
+            fi
+          done <<< "$ARTIFACTS"
+
+          echo "✅ Historical artifacts download completed"
+          echo "=== Downloaded historical artifacts ==="
+          find historical-artifacts -mindepth 1 -maxdepth 1 -type d | sort | sed 's/^/  /' || true
+
+      - name: Combine reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/reports
+          touch site/.nojekyll
+
+          echo "📦 Copying static assets..."
+          cp .github/pages-assets/styles.css site/
+          cp .github/pages-assets/script.js site/
+
+          echo "📊 Copying current report..."
+          HAS_CURRENT=false
+          if [ -d "site-current/reports/${RUN_NAME}" ]; then
+            cp -a "site-current/reports/${RUN_NAME}" "site/reports/"
+            HAS_CURRENT=true
+            echo "✓ Current report ${RUN_NAME} copied"
+          else
+            echo "⚠️  No current report found for ${RUN_NAME}"
+          fi
+          echo "HAS_CURRENT=${HAS_CURRENT}" >> "$GITHUB_ENV"
+
+          echo "📚 Adding historical reports..."
+          for artifact_dir in historical-artifacts/*; do
+            [ -d "$artifact_dir" ] || continue
+            run_name=$(basename "$artifact_dir")
+            target_path="site/reports/${run_name}"
+
+            if [ -d "$target_path" ]; then
+              echo "⊘ Skipping ${run_name} (already present)"
+              continue
+            fi
+
+            # Artifacts contain the nested structure reports/<run>/index.html
+            if [ -d "$artifact_dir/reports/${run_name}" ]; then
+              cp -a "$artifact_dir/reports/${run_name}" "site/reports/"
+              echo "✓ Copied historical report ${run_name}"
+            elif [ -f "$artifact_dir/index.html" ]; then
+              mkdir -p "$target_path"
+              cp -a "$artifact_dir"/. "$target_path/"
+              echo "✓ Copied historical report ${run_name} (flat structure)"
+            else
+              echo "⚠️  Unknown artifact structure for ${run_name}, skipping"
+            fi
+          done
+
+          chmod +x .github/pages-assets/fix-playwright-links.sh
+          ./.github/pages-assets/fix-playwright-links.sh site
+
+      - name: Create index page
+        shell: bash
+        env:
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          cp .github/pages-assets/index-template.html site/index.html
+
+          CURRENT_DATE=$(date -u +"%d.%m.%Y")
+          CURRENT_TIME=$(date -u +"%H:%M")
+          CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          sed -i "s|<!-- DATE_PLACEHOLDER -->|${CURRENT_DATE}|g" site/index.html
+          sed -i "s|<!-- TIME_PLACEHOLDER -->|${CURRENT_TIME}|g" site/index.html
+          sed -i "s|<!-- REPO_PLACEHOLDER -->|${REPO}|g" site/index.html
+          sed -i "s|<!-- RUN_ID_PLACEHOLDER -->|${RUN_ID}|g" site/index.html
+
+          # Newest first: sort by run id, then by attempt (numeric)
+          ALL_REPORTS=$(find site/reports -mindepth 1 -maxdepth 1 -type d -name "[0-9]*-[0-9]*" -printf '%f\n' \
+            | sort -t- -k1,1nr -k2,2nr)
+
+          # Build current report section
+          EXCLUDE_REPORT=""
+          if [ "$HAS_CURRENT" = true ]; then
+            EXCLUDE_REPORT="${RUN_NAME}"
+            REPORTS_CONTENT="<div class=\"test-info\">
+                <div class=\"test-date\" data-timestamp=\"${CURRENT_TIMESTAMP}\">Testlauf vom ${CURRENT_DATE}, ${CURRENT_TIME}</div>
+                <a href=\"reports/${RUN_NAME}/index.html\" class=\"link current\" target=\"_blank\">📊 Report ${RUN_NAME}</a>
+            </div>"
+          else
+            LATEST_REPORT=$(echo "$ALL_REPORTS" | head -n 1)
+            if [ -n "$LATEST_REPORT" ]; then
+              EXCLUDE_REPORT="${LATEST_REPORT}"
+              REPORTS_CONTENT="<div class=\"test-info\">
+                <div class=\"test-date\">Letzter verfügbarer Report</div>
+                <a href=\"reports/${LATEST_REPORT}/index.html\" class=\"link\" target=\"_blank\">📊 Report ${LATEST_REPORT}</a>
+            </div>"
+            else
+              REPORTS_CONTENT="<div class=\"no-report\">Kein Report verfügbar</div>"
+            fi
+          fi
+
+          # Build history section
+          HISTORY_CONTENT=""
+          COUNT=0
+          while read -r report_name; do
+            [ -z "$report_name" ] && continue
+            [ "$report_name" = "$EXCLUDE_REPORT" ] && continue
+            [ "$COUNT" -ge "$HISTORY_SIZE" ] && break
+            HISTORY_CONTENT="${HISTORY_CONTENT}<div class=\"history-item\">
+                    <a href=\"reports/${report_name}/index.html\" class=\"link\" target=\"_blank\">📊 Report ${report_name}</a>
+                </div>"
+            COUNT=$((COUNT + 1))
+          done <<< "$ALL_REPORTS"
+
+          if [ -z "$HISTORY_CONTENT" ]; then
+            HISTORY_CONTENT="<div class=\"no-report\">Keine historischen Reports verfügbar</div>"
+          fi
+
+          # Replace multi-line placeholders via Python (reliable with newlines/special chars)
+          printf '%s' "$REPORTS_CONTENT" > "$RUNNER_TEMP/reports_content.txt"
+          printf '%s' "$HISTORY_CONTENT" > "$RUNNER_TEMP/history_content.txt"
+          python3 .github/pages-assets/replace-placeholders.py site/index.html \
+            "$RUNNER_TEMP/reports_content.txt" "$RUNNER_TEMP/history_content.txt"
+          rm -f "$RUNNER_TEMP/reports_content.txt" "$RUNNER_TEMP/history_content.txt"
+
+          echo "==== Final index.html preview ===="
+          head -50 site/index.html || true
+          echo "==== Reports in site ===="
+          echo "$ALL_REPORTS" | sed 's/^/  /'
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Add report links to summary
+        if: ${{ always() }}
+        env:
+          BASE: ${{ steps.deployment.outputs.page_url || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+        run: |
+          BASE="${BASE%/}"
+          {
+            echo "## 🧪 UI Test Reports"
+            echo ""
+            echo "🔗 **Übersicht:** [${BASE}/](${BASE}/)"
+            echo ""
+            if [ "${HAS_CURRENT:-false}" = true ]; then
+              echo "📊 **Aktueller Report:** [${BASE}/reports/${RUN_NAME}/index.html](${BASE}/reports/${RUN_NAME}/index.html)"
+            else
+              echo "⚠️  Für diesen Lauf wurde kein Report erzeugt."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

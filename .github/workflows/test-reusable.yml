@@ -1,0 +1,254 @@
+name: Reusable UI Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      test_file:
+        description: 'Specific spec file to run, e.g. 01_HappyPath.spec.ts (optional)'
+        required: false
+        type: string
+        default: ''
+      test_case:
+        description: 'Test case ID or title substring, matched literally, e.g. TC-DEC-04 (optional)'
+        required: false
+        type: string
+        default: ''
+      priority:
+        description: 'Priority tag to filter by, e.g. @prio-hoch or @prio-mittel (optional)'
+        required: false
+        type: string
+        default: ''
+      enable_trace:
+        description: 'Override the Playwright trace setting'
+        required: false
+        type: boolean
+        default: false
+      trace_mode:
+        description: 'Trace mode (on, on-first-retry, retain-on-failure)'
+        required: false
+        type: string
+        default: 'on-first-retry'
+      api_ref:
+        description: 'Git ref of the API repository (calculator_api_ts)'
+        required: false
+        type: string
+        default: 'main'
+      ui_ref:
+        description: 'Git ref of the UI repository (calculator_ui_ts)'
+        required: false
+        type: string
+        default: 'main'
+    outputs:
+      report_path:
+        description: 'Path of the report inside the Pages artifact'
+        value: ${{ jobs.test.outputs.report_path }}
+      artifact_name:
+        description: 'Name of the uploaded Pages report artifact'
+        value: ${{ jobs.test.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Playwright UI tests
+    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    outputs:
+      report_path: ${{ steps.prepare-report.outputs.RUNPATH }}
+      artifact_name: ${{ steps.prepare-report.outputs.ARTIFACT_NAME }}
+
+    env:
+      API_BASE_URL: http://localhost:3000
+      UI_BASE_URL: http://localhost:5173
+      TEST_ENVIRONMENT: DEV
+      CI: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # External repositories are checked out below `external/` so they never collide
+      # with this repository's own folders (e.g. `api/` holds our API client code).
+      - name: Checkout API repository
+        uses: actions/checkout@v6
+        with:
+          repository: Sascha-Pommernell/calculator_api_ts
+          ref: ${{ inputs.api_ref || 'main' }}
+          path: external/api
+
+      - name: Checkout UI repository
+        uses: actions/checkout@v6
+        with:
+          repository: Sascha-Pommernell/calculator_ui_ts
+          ref: ${{ inputs.ui_ref || 'main' }}
+          path: external/ui
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            external/api/package-lock.json
+            external/ui/package-lock.json
+
+      - name: Build API
+        working-directory: external/api
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start API and wait for /health
+        working-directory: external/api
+        run: |
+          PORT=3000 nohup npm start > ../../api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_BASE_URL/health" > /dev/null; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy"
+          cat ../../api.log
+          exit 1
+
+      - name: Build UI
+        working-directory: external/ui
+        run: |
+          npm ci
+          npm run build
+
+      # `vite preview` serves the production build and reuses server.proxy for /api and /health
+      - name: Start UI and wait for /
+        working-directory: external/ui
+        run: |
+          API_PROXY_TARGET=$API_BASE_URL nohup npx vite preview --host 127.0.0.1 --port 5173 --strictPort > ../../ui.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$UI_BASE_URL/" > /dev/null && curl -fsS "$UI_BASE_URL/health" > /dev/null; then
+              echo "UI is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "UI did not become reachable"
+          cat ../../ui.log
+          exit 1
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - name: Install Playwright browsers
+        run: npm run install:browsers
+
+      - name: Run Playwright UI tests
+        shell: bash
+        env:
+          TEST_FILE: ${{ inputs.test_file }}
+          TEST_CASE: ${{ inputs.test_case }}
+          PRIORITY: ${{ inputs.priority }}
+          ENABLE_TRACE: ${{ inputs.enable_trace }}
+          TRACE_MODE: ${{ inputs.trace_mode }}
+        run: |
+          ARGS=(npx playwright test)
+
+          if [ -n "$TEST_FILE" ]; then
+            ARGS+=("$TEST_FILE")
+          fi
+
+          # Test titles contain regex metacharacters (+, *, /, parentheses), so the
+          # test case filter is escaped and matched literally.
+          if [ -n "$TEST_CASE" ]; then
+            ESCAPED=$(printf '%s' "$TEST_CASE" | sed -e 's#[][\.*^$?+(){}|\\/]#\\&#g')
+            ARGS+=(--grep "$ESCAPED")
+          elif [ -n "$PRIORITY" ]; then
+            ARGS+=(--grep "$PRIORITY")
+          fi
+
+          if [ "$ENABLE_TRACE" = "true" ]; then
+            ARGS+=(--trace "$TRACE_MODE")
+          fi
+
+          echo "Executing command: ${ARGS[*]}"
+          "${ARGS[@]}"
+
+      - name: Add run summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          TEST_FILE: ${{ inputs.test_file }}
+          TEST_CASE: ${{ inputs.test_case }}
+          PRIORITY: ${{ inputs.priority }}
+          API_REF: ${{ inputs.api_ref }}
+          UI_REF: ${{ inputs.ui_ref }}
+        run: |
+          {
+            echo "### 🧪 Playwright UI tests"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| **Spec file** | \`${TEST_FILE:-all}\` |"
+            echo "| **Test case** | \`${TEST_CASE:-all}\` |"
+            echo "| **Priority** | \`${PRIORITY:-all}\` |"
+            echo "| **API ref** | \`${API_REF}\` |"
+            echo "| **UI ref** | \`${UI_REF}\` |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Prepare report for Pages – ALWAYS run so failed runs are published as well
+      - name: Prepare Pages artifact
+        if: ${{ always() }}
+        id: prepare-report
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_NAME="${{ github.run_id }}-${{ github.run_attempt }}"
+          RUNPATH="reports/${RUN_NAME}"
+          OUT="site/${RUNPATH}"
+          mkdir -p "$OUT"
+          touch site/.nojekyll
+
+          if [ -d "playwright-report" ]; then
+            echo "=== Playwright report found, copying complete structure ==="
+            # Copy complete report including all subdirectories (data, trace, etc.)
+            cp -a playwright-report/. "$OUT/"
+            [ -d "$OUT/data" ] && echo "✓ data/ directory copied" || echo "ℹ️  no data/ directory (no attachments)"
+            [ -d "$OUT/trace" ] && echo "✓ trace/ directory copied" || echo "ℹ️  no trace/ directory (no traces)"
+          else
+            echo "⚠ No playwright-report directory found"
+            echo "<h1>No report generated for run ${RUN_NAME}</h1>" > "$OUT/index.html"
+          fi
+
+          echo "RUNPATH=$RUNPATH" >> "$GITHUB_OUTPUT"
+          echo "ARTIFACT_NAME=report-${RUN_NAME}" >> "$GITHUB_OUTPUT"
+
+          echo "==== Tree of site/ directory ===="
+          find site -type f | head -40 | sed 's/^/  /' || true
+
+      - name: Upload Pages artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.prepare-report.outputs.ARTIFACT_NAME }}
+          path: site
+          retention-days: 30
+
+      - name: Upload test results (JSON/JUnit)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+      - name: Upload server logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: server-logs
+          path: |
+            api.log
+            ui.log

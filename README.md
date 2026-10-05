@@ -187,10 +187,22 @@ export class SubmitCalculationTestStep extends BaseTestStep {
 
 ### 🔁 CI (GitHub Actions)
 
-`.github/workflows/ui-tests.yml` checks out API and UI repos (refs selectable via `workflow_dispatch`), builds and
-starts the API (`npm start`, port 3000) and the UI (`vite preview`, port 5173, proxy to the API), runs
-`npm run lint`, `npm run typecheck`, `npm test` and uploads `playwright-report/` and `test-results/`
-(server logs on failure).
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `ui-tests.yml` | push/PR on `main`, Mon–Fri 03:00 UTC, `workflow_dispatch` (API/UI refs) | Full run, then publishes the report to GitHub Pages (on `main` only) |
+| `manual-test-run.yml` | `workflow_dispatch` | Manual run: all tests, one spec file, one test case (dropdown) or by priority tag; trace mode, API/UI refs, optional publishing |
+| `test-reusable.yml` | `workflow_call` | Checks out API and UI repos, builds and starts the API (`npm start`, port 3000) and the UI (`vite preview`, port 5173, proxy to the API), runs `npm run lint`, `npm run typecheck` and Playwright with the given filters, uploads the report as `report-<run_id>-<attempt>` (plus `test-results`, server logs on failure) |
+| `deploy-to-pages-reusable.yml` | `workflow_call` | Downloads the current report plus up to 10 historical report artifacts, builds the overview page from `.github/pages-assets/` and deploys everything to GitHub Pages |
+
+**Reporting (GitHub Pages):** the overview page (`https://<owner>.github.io/calculator_ui_tests_ts/`) links the
+current report and the report history (`reports/<run_id>-<attempt>/index.html`, incl. traces, screenshots and
+videos). Reports are also published for failed runs. The history is rebuilt from the report artifacts on every
+deployment (retention 30 days), so no report data is committed to the repository.
+One-time setup: *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+
+**Manual test run:** *Actions → Manuelle Testausführung → Run workflow*. Choose a test mode and the matching
+selection – the test case list mirrors the `testCase` names in `data/`; the match is literal, so titles with
+`+`, `*`, `/`, `(` … work as-is. Runs from branches other than `main` only upload the artifact and do not touch Pages.
 
 ---
 
@@ -302,7 +314,20 @@ das Präfix `TC-UI-`.
 
 ### 🔁 CI (GitHub Actions)
 
-`.github/workflows/ui-tests.yml` checkt API- und UI-Repo aus (Refs per `workflow_dispatch` wählbar), baut und startet
-API (`npm start`, Port 3000) und UI (`vite preview`, Port 5173, Proxy zur API), führt `npm run lint`,
-`npm run typecheck`, `npm test` aus und lädt `playwright-report/` und `test-results/` hoch (bei Fehlschlag zusätzlich
-die Server-Logs).
+| Workflow | Auslöser | Zweck |
+|---|---|---|
+| `ui-tests.yml` | Push/PR auf `main`, Mo–Fr 03:00 UTC, `workflow_dispatch` (API-/UI-Refs) | Vollständiger Lauf, anschließend Veröffentlichung des Reports auf GitHub Pages (nur auf `main`) |
+| `manual-test-run.yml` | `workflow_dispatch` | Manuelle Ausführung: alle Tests, eine Testsuite, ein Testfall (Dropdown) oder nach Prioritäts-Tag; Trace-Modus, API-/UI-Refs, optionale Veröffentlichung |
+| `test-reusable.yml` | `workflow_call` | Checkt API- und UI-Repo aus, baut und startet API (`npm start`, Port 3000) und UI (`vite preview`, Port 5173, Proxy zur API), führt `npm run lint`, `npm run typecheck` und Playwright mit den gewählten Filtern aus, lädt den Report als `report-<run_id>-<attempt>` hoch (zusätzlich `test-results`, bei Fehlschlag Server-Logs) |
+| `deploy-to-pages-reusable.yml` | `workflow_call` | Lädt den aktuellen Report sowie bis zu 10 historische Report-Artefakte, erzeugt die Übersichtsseite aus `.github/pages-assets/` und deployt alles auf GitHub Pages |
+
+**Berichtswesen (GitHub Pages):** Die Übersichtsseite (`https://<owner>.github.io/calculator_ui_tests_ts/`) verlinkt
+den aktuellen Report und die Report-Historie (`reports/<run_id>-<attempt>/index.html`, inkl. Traces, Screenshots
+und Videos). Auch fehlgeschlagene Läufe werden veröffentlicht. Die Historie wird bei jedem Deployment aus den
+Report-Artefakten neu aufgebaut (Aufbewahrung 30 Tage), es werden keine Report-Daten ins Repository committet.
+Einmalige Einrichtung: *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+
+**Manuelle Testausführung:** *Actions → Manuelle Testausführung → Run workflow*. Test-Modus und passende Auswahl
+wählen – die Testfall-Liste entspricht den `testCase`-Namen in `data/`; der Abgleich erfolgt literal, Titel mit
+`+`, `*`, `/`, `(` … funktionieren unverändert. Läufe von anderen Branches als `main` laden nur das Artefakt hoch
+und verändern Pages nicht.
