@@ -1,0 +1,128 @@
+[
+  {
+    "testCase": "TC-ADD-01 Addition 1 + 2 = 3",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1", "2"] },
+      "expected": { "result": "3", "expression": "1 + 2 =", "historyEntry": "1 + 2 =3" }
+    }
+  },
+  {
+    "testCase": "TC-ADD-02 Addition 1 + 2 + 3 + 4 = 10 (variadisch)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["1", "2", "3", "4"] },
+      "expected": { "result": "10", "expression": "1 + 2 + 3 + 4 =", "historyEntry": "1 + 2 + 3 + 4 =10" }
+    }
+  },
+  {
+    "testCase": "TC-ADD-03 Addition -5 + 2.5 = -2.5 (negative und dezimale Zahlen)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "add", "operands": ["-5", "2.5"] },
+      "expected": { "result": "-2.5", "expression": "-5 + 2.5 =", "historyEntry": "-5 + 2.5 =-2.5" }
+    }
+  },
+  {
+    "testCase": "TC-SUB-01 Subtraktion 10 - 4 = 6",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "subtract", "operands": ["10", "4"] },
+      "expected": { "result": "6", "expression": "10 − 4 =", "historyEntry": "10 − 4 =6" }
+    }
+  },
+  {
+    "testCase": "TC-SUB-02 Subtraktion 10 - 4 - 3 = 3 (links-assoziativ)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "subtract", "operands": ["10", "4", "3"] },
+      "expected": { "result": "3", "expression": "10 − 4 − 3 =", "historyEntry": "10 − 4 − 3 =3" }
+    }
+  },
+  {
+    "testCase": "TC-SUB-03 Subtraktion -1 - -1 = 0",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "subtract", "operands": ["-1", "-1"] },
+      "expected": { "result": "0", "expression": "-1 − -1 =", "historyEntry": "-1 − -1 =0" }
+    }
+  },
+  {
+    "testCase": "TC-MUL-01 Multiplikation 3 * 4 = 12",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["3", "4"] },
+      "expected": { "result": "12", "expression": "3 × 4 =", "historyEntry": "3 × 4 =12" }
+    }
+  },
+  {
+    "testCase": "TC-MUL-02 Multiplikation 2 * 3 * 4 = 24 (variadisch)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["2", "3", "4"] },
+      "expected": { "result": "24", "expression": "2 × 3 × 4 =", "historyEntry": "2 × 3 × 4 =24" }
+    }
+  },
+  {
+    "testCase": "TC-MUL-03 Multiplikation 5 * 0 = 0",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["5", "0"] },
+      "expected": { "result": "0", "expression": "5 × 0 =", "historyEntry": "5 × 0 =0" }
+    }
+  },
+  {
+    "testCase": "TC-MUL-04 Multiplikation -2 * 2.5 = -5",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "multiply", "operands": ["-2", "2.5"] },
+      "expected": { "result": "-5", "expression": "-2 × 2.5 =", "historyEntry": "-2 × 2.5 =-5" }
+    }
+  },
+  {
+    "testCase": "TC-DIV-01 Division 10 / 4 = 2.5",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["10", "4"] },
+      "expected": { "result": "2.5", "expression": "10 ÷ 4 =", "historyEntry": "10 ÷ 4 =2.5" }
+    }
+  },
+  {
+    "testCase": "TC-DIV-02 Division 100 / 5 / 2 = 10 (verkettet, links-assoziativ)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["100", "5", "2"] },
+      "expected": { "result": "10", "expression": "100 ÷ 5 ÷ 2 =", "historyEntry": "100 ÷ 5 ÷ 2 =10" }
+    }
+  },
+  {
+    "testCase": "TC-DIV-03 Division -9 / 3 = -3",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["-9", "3"] },
+      "expected": { "result": "-3", "expression": "-9 ÷ 3 =", "historyEntry": "-9 ÷ 3 =-3" }
+    }
+  },
+  {
+    "testCase": "TC-DIV-04 Division 0 / 5 = 0 (Dividend null ist erlaubt)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-hoch"],
+      "calculation": { "operation": "divide", "operands": ["0", "5"] },
+      "expected": { "result": "0", "expression": "0 ÷ 5 =", "historyEntry": "0 ÷ 5 =0" }
+    }
+  }
+]

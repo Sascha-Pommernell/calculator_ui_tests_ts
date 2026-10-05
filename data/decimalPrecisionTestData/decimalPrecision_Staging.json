@@ -1,0 +1,82 @@
+[
+  {
+    "testCase": "TC-DEC-01 Präzision 0.1 + 0.2 = exakt 0.3",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "add", "operands": ["0.1", "0.2"] },
+      "expected": { "result": "0.3", "expression": "0.1 + 0.2 =", "historyEntry": "0.1 + 0.2 =0.3" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-02 Präzision 1 - 0.9 = exakt 0.1",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "subtract", "operands": ["1", "0.9"] },
+      "expected": { "result": "0.1", "expression": "1 − 0.9 =", "historyEntry": "1 − 0.9 =0.1" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-03 Präzision 1.1 * 1.1 = exakt 1.21",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "multiply", "operands": ["1.1", "1.1"] },
+      "expected": { "result": "1.21", "expression": "1.1 × 1.1 =", "historyEntry": "1.1 × 1.1 =1.21" }
+    }
+  },
+  {
+    "testCase": "TC-DEC-04 Präzision 1 / 3 = 0.3333333333333333333333333333 (28 Nachkommastellen)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "divide", "operands": ["1", "3"] },
+      "expected": {
+        "result": "0.3333333333333333333333333333",
+        "expression": "1 ÷ 3 =",
+        "historyEntry": "1 ÷ 3 =0.3333333333333333333333333333"
+      }
+    }
+  },
+  {
+    "testCase": "TC-DEC-09 Rundung 2 / 3 = 0.6666666666666666666666666667 (half away from zero)",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "divide", "operands": ["2", "3"] },
+      "expected": {
+        "result": "0.6666666666666666666666666667",
+        "expression": "2 ÷ 3 =",
+        "historyEntry": "2 ÷ 3 =0.6666666666666666666666666667"
+      }
+    }
+  },
+  {
+    "testCase": "TC-UI-DEC-01 Komma als Dezimaltrennzeichen 1,5 + 2 = 3.5",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "add", "operands": ["1,5", "2"] },
+      "expected": { "result": "3.5", "expression": "1.5 + 2 =", "historyEntry": "1.5 + 2 =3.5" }
+    }
+  },
+  {
+    "testCase": "TC-UI-DEC-02 Komma als Dezimaltrennzeichen 0,3 - 0,1 = exakt 0.2",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "subtract", "operands": ["0,3", "0,1"] },
+      "expected": { "result": "0.2", "expression": "0.3 − 0.1 =", "historyEntry": "0.3 − 0.1 =0.2" }
+    }
+  },
+  {
+    "testCase": "TC-UI-DEC-03 Präzision über mehrere Schritte 0.1 + 0.2 + 0.3 = exakt 0.6",
+    "testData": {
+      "urls": { "baseUrl": "{{BASE_URL}}", "calculatorPath": "/" },
+      "tags": ["@prio-mittel"],
+      "calculation": { "operation": "add", "operands": ["0.1", "0.2", "0.3"] },
+      "expected": { "result": "0.6", "expression": "0.1 + 0.2 + 0.3 =", "historyEntry": "0.1 + 0.2 + 0.3 =0.6" }
+    }
+  }
+]
